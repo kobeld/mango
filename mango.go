@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/textproto"
 	"os"
+	"compress/gzip"
 )
 
 type Request struct {
@@ -128,13 +129,28 @@ func (this *Stack) HandlerFunc(app App) http.HandlerFunc {
 
 		status, headers, body := compiled_app(env)
 
+
+		gzip_flag := false
+
 		for key, values := range headers {
 			for _, value := range values {
 				w.Header().Add(key, value)
+				if value == "gzip" {
+					gzip_flag = true
+				}
+
 			}
 		}
+
 		w.WriteHeader(int(status))
-		w.Write([]byte(body))
+
+		if gzip_flag {
+			gz := gzip.NewWriter(w)
+			defer gz.Close()
+			gz.Write([]byte(body))
+		}else{
+			w.Write([]byte(body))
+		}
 	}
 }
 
